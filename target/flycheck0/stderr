@@ -1,0 +1,51 @@
+    Blocking waiting for file lock on build directory
+  14.549339250s  INFO prepare_target{force=false package_id=neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs) target="neuroclaw_core"}: cargo::core::compiler::fingerprint: fingerprint error for neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs)/Check { test: true }/TargetInner { ..: lib_target("neuroclaw_core", ["lib"], "/Users/mikhailsadovoy/neuroclaw-rs/src/lib.rs", Edition2021) }
+  14.549529500s  INFO prepare_target{force=false package_id=neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs) target="neuroclaw_core"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/mikhailsadovoy/neuroclaw-rs/target/debug/.fingerprint/neuroclaw-b88e7aed30b9eb89/test-lib-neuroclaw_core`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+  14.560972584s  INFO prepare_target{force=false package_id=neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs) target="neuroclaw"}: cargo::core::compiler::fingerprint: fingerprint error for neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs)/Check { test: true }/TargetInner { name: "neuroclaw", doc: true, ..: with_path("/Users/mikhailsadovoy/neuroclaw-rs/src/main.rs", Edition2021) }
+  14.560979959s  INFO prepare_target{force=false package_id=neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs) target="neuroclaw"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/mikhailsadovoy/neuroclaw-rs/target/debug/.fingerprint/neuroclaw-4c3957361bad6191/test-bin-neuroclaw`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+    Checking neuroclaw v0.1.0 (/Users/mikhailsadovoy/neuroclaw-rs)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 14.92s
