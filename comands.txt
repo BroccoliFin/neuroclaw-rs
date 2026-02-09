@@ -1,0 +1,20 @@
+./clean.sh
+./run_pantheon.sh
+
+grpcurl -plaintext \
+  -d '{
+    "name": "Создай агента поколения 2: agent_gen1"
+  }' \
+  localhost:50051 agent.Agent/Hello
+
+tail -f agents/agent_gen2/log.txt
+tail -f agents/agent_gen1_2/log.txt
+
+tail -f agents/agent_gen2/agents/agent_gen2/log.txt
+
+
+grpcurl -plaintext \
+  -d '{
+    "name": "Ты — agent_gen2. Создай  агента поколения 3. С именем agent_gen3. Запусти его в фоне с уникальным портом."
+  }' \
+  localhost:50053 agent.Agent/Hello

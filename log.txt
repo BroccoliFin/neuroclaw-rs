@@ -1,0 +1,10 @@
+warning: unused import: `std::fs`
+ --> src/runtime.rs:5:5
+  |
+5 | use std::fs;
+  |     ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+Neuroclaw запущен на [::1]:50051
+Error: tonic::transport::Error(Transport, Os { code: 48, kind: AddrInUse, message: "Address already in use" })

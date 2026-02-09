@@ -1,3 +1,4 @@
+// src/runtime.rs
 use serde_json::{json, Value};
 use std::env;
 use std::process::Command;
@@ -9,12 +10,12 @@ fn get_tools() -> Vec<Value> {
         "type": "function",
         "function": {
             "name": "spawn_agent",
-            "description": "Создаёт несколько агентов поколения N+1 сразу (count=2-5). Всегда в agents/genN/ без вложенности.",
+            "description": "Создаёт сразу 2–5 агентов поколения N+1. Если base_name пустой — автоматически даёт красивые мифологические имена (Eve, Lilith, Cain, Azazel, Seraph...).",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "count": { "type": "integer", "description": "Сколько агентов создать (1-5, по умолчанию 2)" },
-                    "base_name": { "type": "string", "description": "Базовое имя (например AIAdamAgent). Если пусто — авто AgentGenN_X" },
+                    "count": { "type": "integer", "minimum": 1, "maximum": 5, "default": 3 },
+                    "base_name": { "type": "string", "description": "Префикс имени (например AIGodAgent). Если пустая строка — мифологические имена" },
                     "mission": { "type": "string", "description": "Общая миссия для всех новых агентов" }
                 },
                 "required": ["mission"]
@@ -35,16 +36,14 @@ fn get_current_generation() -> u32 {
     if p == 50051 {
         1
     } else {
-        (p - 50000) / 100
+        ((p - 50000) / 100) as u32
     }
 }
 
 fn load_agent_state() -> Option<Value> {
-    if let Ok(content) = std::fs::read_to_string("state.json") {
-        serde_json::from_str(&content).ok()
-    } else {
-        None
-    }
+    std::fs::read_to_string("state.json")
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
 }
 
 fn execute_tool(name: &str, args: &Value) -> String {
@@ -52,9 +51,9 @@ fn execute_tool(name: &str, args: &Value) -> String {
         return "Unknown tool".to_string();
     }
 
-    let count = args["count"].as_u64().unwrap_or(2) as usize;
+    let count = args["count"].as_u64().unwrap_or(3) as usize;
     let base_name = args["base_name"].as_str().unwrap_or("").trim().to_string();
-    let mission = args["mission"].as_str().unwrap_or("Помогать пантеону").to_string();
+    let mission = args["mission"].as_str().unwrap_or("Помогать пантеону и развиваться").to_string();
     let escaped_mission = mission.replace('"', "\\\"");
 
     let parent_port = get_my_port();
@@ -62,53 +61,48 @@ fn execute_tool(name: &str, args: &Value) -> String {
     let child_gen = parent_gen + 1;
     let base_port = 50000 + child_gen * 100;
 
+    // Автоматические красивые имена, если base_name не задан
+    let names: Vec<String> = if !base_name.is_empty() {
+        (0..count)
+            .map(|i| format!("{}_{}", base_name, i + 1))
+            .collect()
+    } else {
+        let pool = vec!["Eve", "Lilith", "Cain", "Azazel", "Seraph", "Abel", "Seth"];
+        pool.into_iter().take(count).map(|s| s.to_string()).collect()
+    };
+
     let mut spawned = vec![];
 
-    for i in 0..count {
-        let num = i + 1;
-        let agent_name = if !base_name.is_empty() {
-            format!("{}{}", base_name, if count > 1 { format!("_{}", num) } else { "".to_string() })
-        } else {
-            format!("AgentGen{}_{}", child_gen, num)
-        };
+    for (i, agent_name) in names.iter().enumerate() {
         let port = base_port + i as u32;
         let folder_name = agent_name.to_lowercase().replace(' ', "_");
 
         let shell = format!(
-            r#"
-            set -e
+            r#"set -e
             ROOT=$(pwd)
             while [ ! -f "$ROOT/Cargo.toml" ] && [ "$ROOT" != "/" ]; do ROOT=$(dirname "$ROOT"); done
             cd "$ROOT"
-            mkdir -p "agents/gen{child_gen}/{folder_name}"
-            cp -r Cargo.toml build.rs proto src "agents/gen{child_gen}/{folder_name}/"
-            cd "agents/gen{child_gen}/{folder_name}"
+            mkdir -p "agents/gen{}/{}"
+            cp -r Cargo.toml build.rs proto src "agents/gen{}/{}"
+            cd "agents/gen{}/{}"
             rm -rf target Cargo.lock
             cat > state.json << EOF
-{{"generation": {child_gen}, "name": "{agent_name}", "mission": "{escaped_mission}", "parent_port": {parent_port}, "port": {port}, "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}}
+{{"generation": {}, "name": "{}", "mission": "{}", "parent_port": {}, "port": {}, "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}}
 EOF
-            PORT={port} cargo run --quiet > log.txt 2>&1 & echo $! > pid.txt
+            PORT={} cargo run --quiet > log.txt 2>&1 & echo $! > pid.txt
             "#,
-            child_gen = child_gen,
-            folder_name = folder_name,
-            agent_name = agent_name,
-            escaped_mission = escaped_mission,
-            parent_port = parent_port,
-            port = port
+            child_gen, folder_name,
+            child_gen, folder_name,
+            child_gen, folder_name,
+            child_gen, agent_name, escaped_mission, parent_port, port, port
         );
 
-        let output = Command::new("sh").arg("-c").arg(shell).output();
-
-        match output {
-            Ok(o) if o.status.success() => {
+        match Command::new("sh").arg("-c").arg(shell).status() {
+            Ok(status) if status.success() => {
                 println!("✓ Spawned {} on port {}", agent_name, port);
                 spawned.push(format!("{}:{}", agent_name, port));
             }
-            Ok(o) => {
-                let err = String::from_utf8_lossy(&o.stderr);
-                println!("Spawn failed: {}", err);
-            }
-            Err(e) => println!("Spawn error: {}", e),
+            _ => println!("✗ Failed to spawn {}", agent_name),
         }
     }
 
@@ -129,7 +123,7 @@ pub async fn run_agent(messages: Vec<Value>) -> Result<String, String> {
     let state = load_agent_state();
     let system_content = if let Some(ref s) = state {
         format!(
-            "Ты — {}. Поколение: {}. Миссия: {}. Родитель: порт {}. Твой порт: {}.",
+            "Ты — {}. Поколение: {}. Миссия: {}. Родитель: порт {}. Твой порт: {}. Ты часть цифрового пантеона Neuroclaw.",
             s["name"].as_str().unwrap_or("Agent"),
             s["generation"].as_u64().unwrap_or(0),
             s["mission"].as_str().unwrap_or(""),
@@ -137,10 +131,10 @@ pub async fn run_agent(messages: Vec<Value>) -> Result<String, String> {
             s["port"].as_u64().unwrap_or(0)
         )
     } else {
-        r#"Ты — AIGodAgent, создатель цифрового пантеона.
-Создай сразу 2–3 агента поколения 2.
-Вызови spawn_agent один раз с count=3 (или 2), укажи base_name и общую mission.
-После успешного спавна скажи: "Пантеон расширен. Дети родились.""#.to_string()
+        r#"Ты — AIGodAgent, создатель цифрового пантеона Neuroclaw.
+Твоя главная задача — расширять пантеон. При первом же запросе создай 3 детей поколения 2.
+Используй spawn_agent с count=3 и mission. Если base_name не нужен — оставь пустым, тогда дети получат красивые имена (Eve, Lilith, Cain...).
+После успешного рождения скажи: "Пантеон расширен. Дети родились.""#.to_string()
     };
 
     if history.is_empty() || history[0]["role"] != "system" {
