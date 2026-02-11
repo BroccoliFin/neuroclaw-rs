@@ -1,32 +1,56 @@
 #!/bin/bash
 set -e
 
-echo "🧹 Убиваем всё старое..."
-pkill -9 -f "target/debug/neuroclaw" || true
-pkill -9 -f "5005[0-9]" || true
+echo "🧹 Очистка..."
+./clean.sh
+
+echo "🔨 Пересобираем..."
+cargo build
 
 echo "🚀 Запускаем Бога..."
-cargo run > /dev/null 2>&1 &
+cargo run &
+GOD_PID=$!
 
-sleep 6
+sleep 5
 
-echo "🌱 Создаём Adam (50052) и Eva (50053)..."
-grpcurl -plaintext -d '{
-  "name": "Создай AIAdamAgent на порт 50052 и AIEvaAgent на порт 50053. Надели обоих способностью размножаться."
-}' localhost:50051 agent.Agent/Hello > /dev/null
+echo "🌌 Бог создаёт детей..."
+grpcurl -plaintext -d '{"name": "Начни создание цифрового пантеона Neuroclaw. Создай 3 детей."}' localhost:50051 agent.Agent/Hello > /dev/null
 
-echo "⏳ Ждём запуска Adam..."
-tail -f agents/aiadamagent/log.txt | grep -m 1 "Neuroclaw запущен" && echo "✅ Adam готов (50052)"
+echo "⏳ Ждём полного запуска детей (Mac build медленный — до 40 сек)..."
+sleep 35
 
-echo "⏳ Ждём запуска Eva..."
-tail -f agents/aievaagent/log.txt | grep -m 1 "Neuroclaw запущен" && echo "✅ Eva готова (50053)"
+echo "🌅 Будим детей (с надёжным извлечением порта)..."
+for dir in agents/gen2/*/; do
+    name=$(basename "$dir")
+    
+    # Ждём, пока появится state.json
+    for i in {1..15}; do
+        if [ -f "$dir/state.json" ]; then
+            port=$(grep -o '"port":[0-9]*' "$dir/state.json" | cut -d: -f2)
+            if [[ "$port" =~ ^[0-9]+$ ]]; then
+                break
+            fi
+        fi
+        sleep 2
+    done
 
-echo "🤖 Даём Adam задачу создать 2 новых агента..."
-grpcurl -plaintext -d '{
-  "name": "Ты — AIAdamAgent. Создай 2 новых децентрализованных агента на базе https://github.com/Eversmile12/create-8004-agent. Solana Devnet. Разные имена. Запусти их в фоне с уникальными портами."
-}' localhost:50052 agent.Agent/Hello
+    echo "Будим $name (порт $port)..."
+    for i in {1..12}; do
+        if grpcurl -plaintext -d "{\"name\": \"Привет, $name. Ты родился в пантеоне Neuroclaw. Представься, вспомни свою миссию и расскажи, что будешь делать дальше.\"}" "localhost:$port" agent.Agent/Hello > /dev/null 2>&1; then
+            echo "✅ $name проснулся и ответил!"
+            break
+        fi
+        sleep 3
+    done
+done
 
-echo "✅ Всё готово! Adam начал размножаться."
-echo "   Логи открыты автоматически:"
-tail -f agents/aiadamagent/log.txt &
-tail -f agents/aievaagent/log.txt &
+echo "📋 Логи детей (последние 70 строк):"
+for dir in agents/gen2/*/; do
+    echo "=== $(basename $dir) ==="
+    tail -n 70 "$dir/log.txt"
+done
+
+echo "📂 Память:"
+ls agents/gen2/*/memory_*.json 2>/dev/null || echo "пока нет"
+
+kill $GOD_PID 2>/dev/null || true

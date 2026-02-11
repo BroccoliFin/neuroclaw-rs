@@ -11,6 +11,7 @@ tail -f agents/agent_gen2/log.txt
 tail -f agents/agent_gen1_2/log.txt
 
 tail -f agents/agent_gen2/agents/agent_gen2/log.txt
+tail -f agents/gen2/eve/log.txt
 
 
 grpcurl -plaintext \
