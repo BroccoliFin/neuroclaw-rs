@@ -1,4 +1,0 @@
-cargo:rerun-if-changed=proto/agent.proto
-cargo:rerun-if-changed=proto
-cargo:rerun-if-changed=proto/agent.proto
-PROTO COMPILED SUCCESSFULLY ✅
